@@ -131,7 +131,7 @@ All `/api/*` endpoints except register and login require a **Bearer token** in t
 
 ## Frontend integration
 
-- Click the **white logo dot** in the header to open the navigation sidebar (Home, Audit Log, Profile, Log Out).
+- Click your **name in the top-right of the header** to open the account menu (Home, Activity log, Profile, Log out).
 - Hash routing: `#/home`, `#/profile`, `#/audit`, `#/login`
 - Theme preference stays in browser `localStorage`.
 - If you had data in `localStorage` before connecting the backend, it is **automatically imported** on first authenticated load when the database is empty.

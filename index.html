@@ -4,19 +4,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F5F7FC" />
   <meta name="description" content="ExpenseIQ — Track, analyze, and manage your daily expenses with a modern fintech SaaS dashboard." />
-  <title>ExpenseIQ — Premium Expense Tracker</title>
+  <title>ExpenseIQ — Expense Tracker</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Motion (the Framer Motion engine, vanilla JS build) -->
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
 
   <link rel="stylesheet" href="Style.css" />
 </head>
@@ -52,10 +56,10 @@
     </div>
     <ul class="sidebar-nav">
       <li><a href="#/home" class="sidebar-link" data-page="home"><i class="fa-solid fa-house"></i> Home</a></li>
-      <li><a href="#/audit" class="sidebar-link" data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a></li>
+      <li><a href="#/audit" class="sidebar-link" data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i> Activity log</a></li>
       <li><a href="#/profile" class="sidebar-link" data-page="profile"><i class="fa-solid fa-user"></i> Profile</a></li>
       <li class="sidebar-nav-divider"></li>
-      <li><button type="button" class="sidebar-link sidebar-link--logout" id="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button></li>
+      <li><button type="button" class="sidebar-link sidebar-link--logout" id="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Log out</button></li>
     </ul>
   </nav>
 
@@ -63,33 +67,35 @@
   <div id="view-login" class="app-view">
     <div class="auth-page">
       <aside class="auth-hero" aria-hidden="true">
-        <div class="auth-hero__glow auth-hero__glow--one"></div>
-        <div class="auth-hero__glow auth-hero__glow--two"></div>
         <div class="auth-hero__content">
           <div class="auth-hero__brand">
-            <div class="logo-icon logo-icon--lg"><i class="fa-solid fa-bolt"></i></div>
+            <div class="logo-icon logo-icon--lg">₹</div>
             <div>
               <h1 class="auth-hero__title">ExpenseIQ</h1>
-              <p class="auth-hero__subtitle">Premium expense intelligence</p>
+              <p class="auth-hero__subtitle">Expense tracking, done properly</p>
             </div>
           </div>
+          <div>
+            <p class="auth-hero__headline">Know where every rupee goes.</p>
+            <p class="auth-hero__lede">Log a purchase in seconds, set a monthly budget, and see your spending by category and month.</p>
+          </div>
           <ul class="auth-hero__features">
-            <li><i class="fa-solid fa-chart-line"></i><span>Real-time spending insights</span></li>
-            <li><i class="fa-solid fa-shield-halved"></i><span>Secure accounts & audit trail</span></li>
-            <li><i class="fa-solid fa-wallet"></i><span>Smart budget tracking</span></li>
+            <li><i class="fa-solid fa-chart-line"></i><span>Monthly and category breakdowns</span></li>
+            <li><i class="fa-solid fa-wallet"></i><span>A budget that warns you before you overspend</span></li>
+            <li><i class="fa-solid fa-shield-halved"></i><span>Private account with a full activity log</span></li>
           </ul>
         </div>
       </aside>
 
       <main class="auth-panel">
-        <button type="button" class="btn-icon auth-theme-btn" id="auth-theme-toggle" aria-label="Toggle theme">
+        <button type="button" class="btn-icon auth-theme-btn" id="auth-theme-toggle" aria-label="Switch light or dark theme">
           <i class="fa-solid fa-moon"></i>
         </button>
 
         <div class="auth-container">
           <div class="auth-card">
             <div class="auth-card__mobile-brand">
-              <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+              <div class="logo-icon">₹</div>
               <span>ExpenseIQ</span>
             </div>
 
@@ -104,13 +110,19 @@
             </div>
 
             <form id="login-form" class="auth-form" role="tabpanel">
-              <div class="input-group input-group--icon">
+              <div class="field">
+                <label class="field-label" for="login-email">Email</label>
+                <div class="input-group input-group--icon">
                 <i class="fa-regular fa-envelope input-icon" aria-hidden="true"></i>
-                <input type="email" id="login-email" class="form-input form-input--icon" placeholder="Email address" required autocomplete="email" />
+                <input type="email" id="login-email" class="form-input form-input--icon" placeholder="you@example.com" required autocomplete="email" />
               </div>
-              <div class="input-group input-group--icon">
+              </div>
+              <div class="field">
+                <label class="field-label" for="login-password">Password</label>
+                <div class="input-group input-group--icon">
                 <i class="fa-solid fa-lock input-icon" aria-hidden="true"></i>
-                <input type="password" id="login-password" class="form-input form-input--icon" placeholder="Password" required autocomplete="current-password" />
+                <input type="password" id="login-password" class="form-input form-input--icon" placeholder="Your password" required autocomplete="current-password" />
+              </div>
               </div>
               <button type="submit" class="btn btn-primary btn-ripple auth-submit">
                 <span>Sign In</span>
@@ -119,17 +131,26 @@
             </form>
 
             <form id="register-form" class="auth-form" hidden role="tabpanel">
-              <div class="input-group input-group--icon">
+              <div class="field">
+                <label class="field-label" for="register-name">Full name</label>
+                <div class="input-group input-group--icon">
                 <i class="fa-regular fa-user input-icon" aria-hidden="true"></i>
-                <input type="text" id="register-name" class="form-input form-input--icon" placeholder="Full name" required autocomplete="name" />
+                <input type="text" id="register-name" class="form-input form-input--icon" placeholder="Aditya Kale" required autocomplete="name" />
               </div>
-              <div class="input-group input-group--icon">
+              </div>
+              <div class="field">
+                <label class="field-label" for="register-email">Email</label>
+                <div class="input-group input-group--icon">
                 <i class="fa-regular fa-envelope input-icon" aria-hidden="true"></i>
-                <input type="email" id="register-email" class="form-input form-input--icon" placeholder="Email address" required autocomplete="email" />
+                <input type="email" id="register-email" class="form-input form-input--icon" placeholder="you@example.com" required autocomplete="email" />
               </div>
-              <div class="input-group input-group--icon">
+              </div>
+              <div class="field">
+                <label class="field-label" for="register-password">Password</label>
+                <div class="input-group input-group--icon">
                 <i class="fa-solid fa-lock input-icon" aria-hidden="true"></i>
-                <input type="password" id="register-password" class="form-input form-input--icon" placeholder="Password (min 6 characters)" required minlength="6" autocomplete="new-password" />
+                <input type="password" id="register-password" class="form-input form-input--icon" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
+              </div>
               </div>
               <button type="submit" class="btn btn-primary btn-ripple auth-submit">
                 <span>Create Account</span>
@@ -148,16 +169,20 @@
     <!-- ===== HEADER ===== -->
     <header class="app-header">
       <div class="header-brand">
-        <button class="logo-icon" id="btn-open-sidebar" type="button" aria-label="Open menu">
-          <i class="fa-solid fa-bolt"></i>
-        </button>
-        <div class="brand-text">
-          <h1 class="brand-title">ExpenseIQ</h1>
-        </div>
+        <a href="#/home" class="brand-link" aria-label="ExpenseIQ home">
+          <span class="brand-mark" aria-hidden="true">₹</span>
+          <span class="brand-title">ExpenseIQ</span>
+        </a>
       </div>
       <div class="header-actions">
-        <button class="btn-icon" id="btn-toggle-theme" title="Toggle Theme" aria-label="Toggle dark/light theme">
+        <span class="header-date" id="header-date"></span>
+        <button class="btn-icon header-theme-btn" id="btn-toggle-theme" type="button" title="Switch theme" aria-label="Switch light or dark theme">
           <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="header-user" id="btn-open-sidebar" type="button" aria-label="Open account menu">
+          <span class="header-user-avatar" id="header-user-avatar">?</span>
+          <span class="header-user-name" id="header-user-name">Account</span>
+          <i class="fa-solid fa-chevron-down header-user-caret" aria-hidden="true"></i>
         </button>
       </div>
     </header>
@@ -166,50 +191,104 @@
     <div id="view-home" class="app-view app-view-active">
 
     <!-- ===== HERO STATS ===== -->
-    <section class="stats-hero" aria-label="Primary statistic">
-      <div class="hero-card" id="stat-total">
-        <div class="hero-bg"></div>
-        <div class="hero-content">
-          <span class="hero-label">Total Expenses</span>
-          <span class="hero-value" id="stat-total-value">₹0.00</span>
+    <section class="stats-hero" aria-label="Spending summary">
+      <div class="hero-intro">
+        <div>
+          <p class="hero-greeting" id="hero-greeting">Welcome back</p>
+          <h1 class="hero-title">Your money, at a glance</h1>
+        </div>
+        <div class="hero-links">
+          <button type="button" class="btn btn-outline" data-proxy="btn-edit-budget"><i class="fa-solid fa-sliders"></i> Set budget</button>
+          <button type="button" class="btn btn-primary" data-proxy="btn-open-add-expense"><i class="fa-solid fa-plus"></i> Add expense</button>
         </div>
       </div>
-      
-      <div class="stats-secondary-grid">
-        <div class="stat-card" id="stat-count">
-          <div class="stat-info">
-            <span class="stat-label">Transactions</span>
-            <span class="stat-value" id="stat-count-value">0</span>
+
+      <div class="hero-grid">
+        <!-- Realistic card: the total lives here -->
+        <div class="hero-card-stage">
+          <div class="hero-card" id="stat-total">
+            <div class="hero-bg" aria-hidden="true"></div>
+            <div class="hero-sheen" aria-hidden="true"></div>
+            <div class="card-top">
+              <span class="card-brand"><span class="card-brand-mark">₹</span> ExpenseIQ</span>
+              <i class="fa-solid fa-wifi card-contactless" aria-hidden="true"></i>
+            </div>
+            <div class="card-chip" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="hero-content">
+              <span class="hero-label">Total spent</span>
+              <span class="hero-value" id="stat-total-value">₹0.00</span>
+            </div>
+            <div class="card-bottom">
+              <div class="card-meta">
+                <span class="card-meta-label">Card holder</span>
+                <span class="card-meta-value" id="hero-card-holder">Your name</span>
+              </div>
+              <div class="card-meta card-meta--right">
+                <span class="card-meta-label">Expenses</span>
+                <span class="card-meta-value" id="hero-sub">0</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="stat-card" id="stat-highest">
-          <div class="stat-info">
-            <span class="stat-label">Highest Expense</span>
-            <span class="stat-value" id="stat-highest-value">₹0.00</span>
+
+        <!-- Six-month trend -->
+        <div class="card trend-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Spending trend</h2>
+              <p class="card-caption">Last 6 months</p>
+            </div>
+            <span class="trend-badge" id="hero-trend-badge">—</span>
           </div>
+          <div class="hero-spark" aria-hidden="true">
+            <svg id="hero-spark-svg" viewBox="0 0 600 140" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="hero-spark-months" id="hero-spark-months" aria-hidden="true"></div>
         </div>
-        <div class="stat-card" id="stat-avg">
-          <div class="stat-info">
-            <span class="stat-label">Average Expense</span>
-            <span class="stat-value" id="stat-avg-value">₹0.00</span>
+
+        <div class="stats-secondary-grid">
+          <div class="stat-card" id="stat-count">
+            <span class="stat-icon"><i class="fa-solid fa-receipt"></i></span>
+            <div class="stat-info">
+              <span class="stat-label">Transactions</span>
+              <span class="stat-value" id="stat-count-value">0</span>
+            </div>
+          </div>
+          <div class="stat-card" id="stat-highest">
+            <span class="stat-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
+            <div class="stat-info">
+              <span class="stat-label">Largest expense</span>
+              <span class="stat-value" id="stat-highest-value">₹0.00</span>
+            </div>
+          </div>
+          <div class="stat-card" id="stat-avg">
+            <span class="stat-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+            <div class="stat-info">
+              <span class="stat-label">Average expense</span>
+              <span class="stat-value" id="stat-avg-value">₹0.00</span>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ===== METRICS GRID (Budget, Top Category, AI Insights) ===== -->
+    <div class="section-head">
+      <h2 class="section-title">This month at a glance</h2>
+      <p class="section-desc">Your budget, top category and patterns worth knowing.</p>
+    </div>
     <section class="metrics-grid" aria-label="Dashboard metrics">
       <!-- Budget Tracking Card -->
       <div class="card metrics-card" id="budget-card">
         <div class="card-header">
-          <h2 class="card-title">Budget Tracker</h2>
+          <h2 class="card-title">This month’s budget</h2>
           <button class="btn-icon btn-icon--sm" id="btn-edit-budget" title="Edit monthly budget" aria-label="Edit budget">
             <i class="fa-solid fa-pen"></i>
           </button>
         </div>
         <div class="budget-body">
           <div class="budget-row">
-            <span class="budget-label">Monthly Budget</span>
+            <span class="budget-label">Budget</span>
             <span class="budget-value" id="budget-total-value">₹0.00</span>
           </div>
           <div class="budget-progress-wrapper">
@@ -232,7 +311,7 @@
       <!-- Top Spending Category Card -->
       <div class="card metrics-card" id="top-category-card">
         <div class="card-header">
-          <h2 class="card-title">Top Category</h2>
+          <h2 class="card-title">Top category</h2>
         </div>
         <div class="top-category-body" id="top-category-body">
           <div class="top-cat-empty">
@@ -244,7 +323,7 @@
       <!-- AI Insights Card -->
       <div class="card metrics-card" id="insights-card">
         <div class="card-header">
-          <h2 class="card-title">AI Insights</h2>
+          <h2 class="card-title">Insights</h2>
         </div>
         <div class="insights-body" id="insights-body">
           <div class="insight-item">
@@ -255,10 +334,14 @@
     </section>
 
     <!-- ===== CHARTS ROW ===== -->
+    <div class="section-head">
+      <h2 class="section-title">Where your money goes</h2>
+      <p class="section-desc">Six months of spending, and how it splits across categories.</p>
+    </div>
     <div class="charts-row">
       <div class="card chart-card">
         <div class="card-header">
-          <h2 class="card-title">Monthly Overview</h2>
+          <h2 class="card-title">Spending by month</h2>
         </div>
         <div class="chart-wrapper">
           <canvas id="chart-monthly" aria-label="Monthly expense bar chart"></canvas>
@@ -266,7 +349,7 @@
       </div>
       <div class="card chart-card">
         <div class="card-header">
-          <h2 class="card-title">By Category</h2>
+          <h2 class="card-title">Spending by category</h2>
         </div>
         <div class="chart-wrapper">
           <canvas id="chart-category" aria-label="Category breakdown pie chart"></canvas>
@@ -275,6 +358,10 @@
     </div>
 
     <!-- ===== DASHBOARD SECONDARY GRID ===== -->
+    <div class="section-head">
+      <h2 class="section-title">Every transaction</h2>
+      <p class="section-desc">Search, filter, edit and export everything you have logged.</p>
+    </div>
     <div class="dashboard-secondary-grid">
 
       <!-- Expense List (Left Column) -->
@@ -283,7 +370,7 @@
           <h2 class="card-title">Transactions</h2>
           <div class="card-header-actions">
             <button id="btn-delete-selected" class="btn btn-outline btn-sm btn-delete-selected" type="button" disabled hidden>
-              <i class="fa-solid fa-trash"></i> Delete Selected
+              <i class="fa-solid fa-trash"></i> Delete selected
             </button>
             <span class="expense-count-badge" id="expense-count-badge">0 items</span>
           </div>
@@ -293,20 +380,20 @@
         <div class="list-controls">
           <div class="search-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="search-input" class="search-input" placeholder="Search expenses..." autocomplete="off" />
+            <input type="text" id="search-input" class="search-input" placeholder="Search by description" aria-label="Search expenses" autocomplete="off" />
           </div>
           <div class="filter-sort-row">
             <!-- Date Range Filter -->
             <select id="date-range-filter" class="filter-select" aria-label="Filter by date range">
-              <option value="all">All Time</option>
+              <option value="all">All time</option>
               <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="custom">Custom Range</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+              <option value="year">This year</option>
+              <option value="custom">Custom range</option>
             </select>
             <select id="filter-category" class="filter-select" aria-label="Filter by category">
-              <option value="">All Categories</option>
+              <option value="">All categories</option>
               <option value="Food">Food & Dining</option>
               <option value="Transport">Transport</option>
               <option value="Shopping">Shopping</option>
@@ -317,23 +404,23 @@
               <option value="Other">Other</option>
             </select>
             <select id="sort-select" class="filter-select" aria-label="Sort expenses">
-              <option value="date-desc">Newest First</option>
-              <option value="date-asc">Oldest First</option>
-              <option value="amount-desc">Highest Amount</option>
-              <option value="amount-asc">Lowest Amount</option>
+              <option value="date-desc">Newest first</option>
+              <option value="date-asc">Oldest first</option>
+              <option value="amount-desc">Highest amount</option>
+              <option value="amount-asc">Lowest amount</option>
               <option value="name-asc">Name A–Z</option>
             </select>
 
             <div class="filter-sort-actions">
-              <button id="btn-open-add-expense" class="btn btn-primary btn-ripple" type="button" title="Add expense">
-                +Add
+              <button id="btn-open-add-expense" class="btn btn-primary btn-ripple" type="button">
+                <i class="fa-solid fa-plus"></i> Add expense
               </button>
 
               <!-- Export Dropdown -->
               <div class="export-dropdown-wrapper" id="export-dropdown-wrapper">
                 <button id="btn-export" class="btn btn-outline btn-ripple" title="Export expenses">
                   <i class="fa-solid fa-download"></i> Export
-                  <i class="fa-solid fa-chevron-down" style="font-size: 0.6rem; margin-left: 2px;"></i>
+                  <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
                 </button>
                 <div class="export-dropdown" id="export-dropdown">
                   <button class="export-option" id="export-csv" type="button"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
@@ -361,8 +448,9 @@
         <div class="table-wrapper" id="table-wrapper">
           <!-- Empty state -->
           <div class="empty-state" id="empty-state">
-            <h3 class="empty-title">No expenses yet</h3>
-            <p class="empty-subtitle">Use the +Add button above to start tracking your spending.</p>
+            <div class="empty-icon"><i class="fa-solid fa-receipt"></i></div>
+            <h3 class="empty-title">No expenses here</h3>
+            <p class="empty-subtitle">Add your first expense, or clear the search and filters to see everything.</p>
           </div>
           <table class="expense-table" id="expense-table" aria-label="Expense records">
             <thead>
@@ -398,7 +486,7 @@
           <div class="profile-avatar-large" id="profile-avatar">?</div>
           <div class="profile-details" id="profile-details">
             <div class="profile-field">
-              <span class="profile-label">Full Name</span>
+              <span class="profile-label">Full name</span>
               <span class="profile-value" id="profile-name-display">—</span>
             </div>
             <div class="profile-field">
@@ -406,7 +494,7 @@
               <span class="profile-value" id="profile-email-display">—</span>
             </div>
             <div class="profile-field">
-              <span class="profile-label">Member Since</span>
+              <span class="profile-label">Member since</span>
               <span class="profile-value" id="profile-created-display">—</span>
             </div>
             <div class="profile-field">
@@ -415,11 +503,12 @@
             </div>
           </div>
           <form id="profile-edit-form" class="profile-edit-form">
-            <h3 class="profile-section-title">Edit Profile</h3>
-            <div class="input-group">
-              <input type="text" id="profile-name-input" class="form-input" placeholder="Full name" />
+            <h3 class="profile-section-title">Edit profile</h3>
+            <div class="field">
+              <label class="field-label" for="profile-name-input">Full name</label>
+              <input type="text" id="profile-name-input" class="form-input" placeholder="Your name" autocomplete="name" />
             </div>
-            <button type="submit" class="btn btn-primary btn-ripple">Save Changes</button>
+            <button type="submit" class="btn btn-primary btn-ripple">Save changes</button>
           </form>
         </div>
       </section>
@@ -429,7 +518,7 @@
     <div id="view-audit" class="app-view">
       <section class="card page-card list-card">
         <div class="card-header">
-          <h2 class="card-title">Audit Log</h2>
+          <h2 class="card-title">Activity log</h2>
           <span class="expense-count-badge" id="audit-count-badge">0 events</span>
         </div>
         <p class="page-subtitle">A summary of your account activity and changes.</p>
@@ -456,6 +545,7 @@
 
         <div class="table-wrapper" id="audit-table-wrapper">
           <div class="empty-state" id="audit-empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <h3 class="empty-title">No activity yet</h3>
             <p class="empty-subtitle">Your actions will appear here as you use ExpenseIQ.</p>
           </div>
@@ -503,6 +593,7 @@
             <tbody id="audit-tbody"></tbody>
           </table>
           <div class="empty-state" id="audit-no-results" hidden>
+            <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
             <h3 class="empty-title">No matching events</h3>
             <p class="empty-subtitle">Try adjusting your search or filters.</p>
           </div>
@@ -510,42 +601,83 @@
       </section>
     </div>
 
+    <footer class="app-footer">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="brand-mark brand-mark--inverse" aria-hidden="true">₹</span>
+          <span class="brand-title">ExpenseIQ</span>
+        </div>
+        <p class="footer-tagline">Track every expense. Stay inside your budget.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h3 class="footer-heading">Navigate</h3>
+          <a href="#/home">Dashboard</a>
+          <a href="#/audit">Activity log</a>
+          <a href="#/profile">Profile</a>
+        </div>
+        <div>
+          <h3 class="footer-heading">Quick actions</h3>
+          <button type="button" data-proxy="btn-open-add-expense">Add an expense</button>
+          <button type="button" data-proxy="btn-edit-budget">Set your budget</button>
+          <button type="button" data-proxy="export-csv">Export as CSV</button>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 ExpenseIQ</span>
+        <button type="button" class="footer-top-link" id="btn-back-to-top">Back to top <i class="fa-solid fa-arrow-up"></i></button>
+      </div>
+    </footer>
+
   </div><!-- /app-wrapper -->
 
   <!-- ===== ADD EXPENSE MODAL ===== -->
   <div id="add-expense-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
     <div class="modal-card modal-card--wide">
       <div class="modal-header">
-        <h3 id="add-modal-title">Add Expense</h3>
+        <h3 id="add-modal-title">Add expense</h3>
         <button id="add-modal-close" class="btn-icon" aria-label="Close modal" type="button"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="form-grid">
-        <div class="input-group">
-          <input type="text" id="expense-description" class="form-input" placeholder="Expense description" autocomplete="off" />
+        <div class="field">
+          <label class="field-label" for="expense-description">Description</label>
+          <div class="input-group">
+            <input type="text" id="expense-description" class="form-input" placeholder="e.g. Lunch with team" autocomplete="off" />
+          </div>
         </div>
-        <div class="input-group amount-input-group">
-          <span class="amount-currency-prefix" id="amount-currency-prefix">₹</span>
-          <input type="number" id="expense-amount" class="form-input form-input--amount" placeholder="Amount *" min="0.01" step="0.01" required aria-required="true" />
+        <div class="field">
+          <label class="field-label" for="expense-amount">Amount</label>
+          <div class="input-group amount-input-group">
+            <span class="amount-currency-prefix" id="amount-currency-prefix">₹</span>
+            <input type="number" id="expense-amount" class="form-input form-input--amount" placeholder="0.00" min="0.01" step="0.01" required aria-required="true" />
+          </div>
         </div>
-        <div class="input-group">
-          <select id="expense-category" class="form-input form-select">
-            <option value="">Select Category</option>
-            <option value="Food">Food & Dining</option>
-            <option value="Transport">Transport</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Health">Health</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Education">Education</option>
-            <option value="Other">Other</option>
-          </select>
+        <div class="field">
+          <label class="field-label" for="expense-category">Category</label>
+          <div class="input-group">
+            <select id="expense-category" class="form-input form-select">
+              <option value="">Choose a category</option>
+              <option value="Food">Food & Dining</option>
+              <option value="Transport">Transport</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Education">Education</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
         </div>
-        <div class="input-group">
-          <input type="date" id="expense-date" class="form-input form-input--date" title="Date (required)" required aria-required="true" />
+        <div class="field">
+          <label class="field-label" for="expense-date">Date</label>
+          <div class="input-group">
+            <input type="date" id="expense-date" class="form-input form-input--date" title="Date (required)" required aria-required="true" />
+          </div>
         </div>
       </div>
 
       <div class="quick-chips" id="quick-chips">
+        <span class="quick-chips-label">Quick pick</span>
         <button class="chip" data-cat="Food" type="button">Food</button>
         <button class="chip" data-cat="Transport" type="button">Travel</button>
         <button class="chip" data-cat="Health" type="button">Health</button>
@@ -555,7 +687,7 @@
 
       <div class="form-actions">
         <button id="btn-add-expense" class="btn btn-primary btn-ripple" type="button">
-          <span>Add Expense</span>
+          <span>Add expense</span>
         </button>
         <button id="btn-clear-form" class="btn btn-ghost btn-ripple" type="button">
           <span>Clear</span>
@@ -568,37 +700,49 @@
   <div id="edit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 id="modal-title">Edit Expense</h3>
-        <button id="modal-close" class="btn-icon" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+        <h3 id="modal-title">Edit expense</h3>
+        <button id="modal-close" class="btn-icon" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="form-grid">
-        <div class="input-group">
-          <input type="text" id="modal-description" class="form-input" placeholder="Description" />
+        <div class="field">
+          <label class="field-label" for="modal-description">Description</label>
+          <div class="input-group">
+            <input type="text" id="modal-description" class="form-input" placeholder="e.g. Lunch with team" />
+          </div>
         </div>
-        <div class="input-group amount-input-group">
-          <span class="amount-currency-prefix" id="modal-currency-prefix">₹</span>
-          <input type="number" id="modal-amount" class="form-input form-input--amount" placeholder="Amount" min="0" step="0.01" />
+        <div class="field">
+          <label class="field-label" for="modal-amount">Amount</label>
+          <div class="input-group amount-input-group">
+            <span class="amount-currency-prefix" id="modal-currency-prefix">₹</span>
+            <input type="number" id="modal-amount" class="form-input form-input--amount" placeholder="0.00" min="0" step="0.01" />
+          </div>
         </div>
-        <div class="input-group">
-          <select id="modal-category" class="form-input form-select">
-            <option value="">Select Category</option>
-            <option value="Food">Food & Dining</option>
-            <option value="Transport">Transport</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Health">Health</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Education">Education</option>
-            <option value="Other">Other</option>
-          </select>
+        <div class="field">
+          <label class="field-label" for="modal-category">Category</label>
+          <div class="input-group">
+            <select id="modal-category" class="form-input form-select">
+              <option value="">Choose a category</option>
+              <option value="Food">Food & Dining</option>
+              <option value="Transport">Transport</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Education">Education</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
         </div>
-        <div class="input-group">
-          <input type="date" id="modal-date" class="form-input form-input--date" />
+        <div class="field">
+          <label class="field-label" for="modal-date">Date</label>
+          <div class="input-group">
+            <input type="date" id="modal-date" class="form-input form-input--date" />
+          </div>
         </div>
       </div>
       <div class="form-actions">
-        <button id="modal-save" class="btn btn-primary btn-ripple">Save Changes</button>
-        <button id="modal-cancel" class="btn btn-ghost btn-ripple">Cancel</button>
+        <button id="modal-save" class="btn btn-primary btn-ripple" type="button">Save changes</button>
+        <button id="modal-cancel" class="btn btn-ghost btn-ripple" type="button">Cancel</button>
       </div>
     </div>
   </div>
@@ -607,18 +751,19 @@
   <div id="budget-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="budget-modal-title">
     <div class="modal-card modal-card--sm">
       <div class="modal-header">
-        <h3 id="budget-modal-title">Set Monthly Budget</h3>
-        <button id="budget-modal-close" class="btn-icon" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+        <h3 id="budget-modal-title">Set monthly budget</h3>
+        <button id="budget-modal-close" class="btn-icon" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="budget-modal-body">
+        <label class="field-label" for="budget-modal-amount">Budget for each month</label>
         <div class="input-group amount-input-group">
           <span class="amount-currency-prefix" id="budget-modal-prefix">₹</span>
-          <input type="number" id="budget-modal-amount" class="form-input form-input--amount" placeholder="Enter monthly budget" min="0" step="100" />
+          <input type="number" id="budget-modal-amount" class="form-input form-input--amount" placeholder="25000" min="0" step="100" />
         </div>
       </div>
-      <div class="form-actions" style="margin-top:20px;">
-        <button id="budget-modal-save" class="btn btn-primary btn-ripple">Save Budget</button>
-        <button id="budget-modal-cancel" class="btn btn-ghost btn-ripple">Cancel</button>
+      <div class="form-actions" style="margin-top:24px;">
+        <button id="budget-modal-save" class="btn btn-primary btn-ripple" type="button">Save budget</button>
+        <button id="budget-modal-cancel" class="btn btn-ghost btn-ripple" type="button">Cancel</button>
       </div>
     </div>
   </div>

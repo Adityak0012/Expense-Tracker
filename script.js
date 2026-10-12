@@ -212,6 +212,14 @@ function updateSidebarUser() {
   if (!currentUser) return;
   const initial = (currentUser.full_name || '?').charAt(0).toUpperCase();
   sidebarAvatar.textContent = initial;
+  const headerAvatar = document.getElementById('header-user-avatar');
+  if (headerAvatar) headerAvatar.textContent = initial;
+  const firstName = (currentUser.full_name || '').trim().split(/\s+/)[0] || 'there';
+  const headerName = document.getElementById('header-user-name');
+  if (headerName) headerName.textContent = firstName;
+  const holder = document.getElementById('hero-card-holder');
+  if (holder) holder.textContent = currentUser.full_name || 'Your name';
+  updateGreeting();
   sidebarUserName.textContent = currentUser.full_name;
   sidebarUserEmail.textContent = currentUser.email;
 }
@@ -272,7 +280,7 @@ function applyPageView(page) {
   viewProfile.classList.toggle('app-view-active', page === 'profile');
   viewAudit.classList.toggle('app-view-active', page === 'audit');
 
-  document.querySelectorAll('.sidebar-link[data-page]').forEach(link => {
+  document.querySelectorAll('.sidebar-link[data-page], .header-nav-link[data-page]').forEach(link => {
     link.classList.toggle('active', link.dataset.page === page);
   });
 
@@ -718,11 +726,13 @@ async function init() {
   dateInput.value = todayISO();
 
   // Theme (UI-only, stays in localStorage)
-  const savedTheme = localStorage.getItem('expenseiq_theme') || 'dark';
+  const savedTheme = localStorage.getItem('expenseiq_theme') || 'light';
   applyTheme(savedTheme);
 
   buildCurrencyDropdown();
   applyCurrencyUI();
+  updateGreeting();
+  initCardTilt();
 
   // Auth gate
   const token = getAuthToken();
@@ -750,7 +760,7 @@ async function init() {
   if (currentPage === 'home') renderAll();
 
   // Hide loader
-  setTimeout(() => loadingOverlay.classList.add('hidden'), 900);
+  setTimeout(() => { loadingOverlay.classList.add('hidden'); MotionFX.introHome(); }, 350);
 
   // Sidebar & auth events
   btnOpenSidebar.addEventListener('click', toggleSidebar);
@@ -980,6 +990,16 @@ async function init() {
 
   selectAllCheckbox.addEventListener('change', handleSelectAll);
   deleteSelectedBtn.addEventListener('click', deleteSelectedExpenses);
+
+  // Shortcut buttons (hero links, footer) forward their click to the real control
+  document.addEventListener('click', (e) => {
+    const proxy = e.target.closest('[data-proxy]');
+    if (!proxy) return;
+    const target = document.getElementById(proxy.dataset.proxy);
+    if (target) { e.preventDefault(); target.click(); }
+  });
+  const backToTop = document.getElementById('btn-back-to-top');
+  if (backToTop) backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
   // Ripple Effect for all .btn-ripple buttons
   document.addEventListener('click', (e) => {
@@ -1485,6 +1505,100 @@ function renderStats() {
   animateCount('stat-count-value',   count,   false);
   animateCount('stat-highest-value', highest, true);
   animateCount('stat-avg-value',     avg,     true);
+
+  const sub = document.getElementById('hero-sub');
+  if (sub) {
+    sub.textContent = String(count);
+  }
+  renderHeroSpark(currentList);
+}
+
+function updateGreeting() {
+  const h = new Date().getHours();
+  const part = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = currentUser ? ((currentUser.full_name || '').trim().split(/\s+/)[0] || '') : '';
+  const g = document.getElementById('hero-greeting');
+  if (g) g.textContent = firstName ? `${part}, ${firstName}` : part;
+  const dateEl = document.getElementById('header-date');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+// Six-month trend line on the trend panel
+function renderHeroSpark(list) {
+  const svg = document.getElementById('hero-spark-svg');
+  if (!svg) return;
+  const monthMap = {};
+  list.forEach(e => {
+    const key = e.date ? String(e.date).slice(0, 7) : '';
+    monthMap[key] = (monthMap[key] || 0) + e.amount;
+  });
+  const vals = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    vals.push(monthMap[key] || 0);
+  }
+  const W = 600, H = 140, padTop = 16, padBottom = 6;
+  const max = Math.max(...vals, 1);
+  const pts = vals.map((v, i) => [
+    (i / (vals.length - 1)) * W,
+    padTop + (1 - v / max) * (H - padTop - padBottom)
+  ]);
+  // smooth curve (Catmull-Rom → Bezier)
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+  }
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2A9FF6" stop-opacity="0.28"></stop>
+        <stop offset="100%" stop-color="#2A9FF6" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="sparkStroke" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#4188F2"></stop>
+        <stop offset="100%" stop-color="#11B7FB"></stop>
+      </linearGradient>
+    </defs>
+    ${pts.map(p => `<line class="spark-grid" x1="${p[0]}" y1="0" x2="${p[0]}" y2="${H}"></line>`).join('')}
+    <path class="spark-area" d="${d} L${W},${H} L0,${H} Z" fill="url(#sparkFill)"></path>
+    <path class="spark-line" d="${d}" stroke="url(#sparkStroke)"></path>`;
+
+  // Month labels + the endpoint marker sit in HTML so they don't stretch with the SVG
+  const months = document.getElementById('hero-spark-months');
+  if (months) {
+    const labels = [];
+    for (let i = 5; i >= 0; i--) {
+      const dd = new Date(); dd.setDate(1); dd.setMonth(dd.getMonth() - i);
+      labels.push(dd.toLocaleDateString('en-US', { month: 'short' }));
+    }
+    months.innerHTML = labels.map((l, i) => `<span${i === 5 ? ' class="is-current"' : ''}>${l}</span>`).join('');
+  }
+  const wrap = svg.parentElement;
+  let dot = wrap.querySelector('.spark-marker');
+  if (!dot) { dot = document.createElement('span'); dot.className = 'spark-marker'; wrap.appendChild(dot); }
+  const last = pts[pts.length - 1];
+  dot.style.left = '100%';
+  dot.style.top = (last[1] / H * 100) + '%';
+
+  // Month-over-month change badge
+  const badge = document.getElementById('hero-trend-badge');
+  if (badge) {
+    const cur = vals[5], prev = vals[4];
+    if (!prev && !cur) { badge.textContent = 'No data yet'; badge.className = 'trend-badge'; }
+    else if (!prev) { badge.textContent = 'New this month'; badge.className = 'trend-badge'; }
+    else {
+      const pct = Math.round(((cur - prev) / prev) * 100);
+      const up = pct > 0;
+      badge.innerHTML = `<i class="fa-solid fa-arrow-${up ? 'up' : 'down'}"></i> ${Math.abs(pct)}% vs last month`;
+      badge.className = 'trend-badge ' + (up ? 'trend-badge--up' : 'trend-badge--down');
+    }
+  }
 }
 
 function animateCount(id, target, isCurrency) {
@@ -1519,7 +1633,7 @@ function renderTopCategory() {
   const container = document.getElementById('top-category-body');
   const currentList = getGlobalFilteredExpenses();
   if (currentList.length === 0) {
-    container.innerHTML = `<div class="top-cat-empty"><i class="fa-solid fa-chart-simple"></i><span>No data yet</span></div>`;
+    container.innerHTML = `<div class="top-cat-empty"><i class="fa-solid fa-chart-simple"></i><span>Your biggest category shows up after your first expense.</span></div>`;
     return;
   }
 
@@ -1530,19 +1644,19 @@ function renderTopCategory() {
   const topCat = Object.entries(catMap).sort((a, b) => b[1] - a[1])[0];
   const [catName, catAmount] = topCat;
   const pct = total > 0 ? ((catAmount / total) * 100).toFixed(1) : 0;
-  const emoji = CAT_EMOJI[catName] || '📦';
+  const catClass = CAT_CLASS_MAP[catName] || 'cat-other';
 
   container.innerHTML = `
-    <div class="top-cat-display">
-      <div class="top-cat-icon">${emoji}</div>
+    <div class="top-cat-display ${catClass}">
+      <div class="top-cat-icon">${catIconHtml(catName)}</div>
       <div class="top-cat-info">
         <div class="top-cat-name">${escHtml(catName)}</div>
         <div class="top-cat-amount">${formatCurrency(catAmount)}</div>
       </div>
     </div>
-    <div class="top-cat-bar-wrapper">
+    <div class="top-cat-bar-wrapper ${catClass}">
       <div class="top-cat-bar"><div class="top-cat-bar-fill" style="width:${pct}%"></div></div>
-      <div class="top-cat-percentage">${pct}% of total spending</div>
+      <div class="top-cat-percentage">${pct}% of everything you've spent</div>
     </div>
   `;
 }
@@ -1553,7 +1667,7 @@ function renderInsights() {
   const currentList = getGlobalFilteredExpenses();
 
   if (currentList.length === 0) {
-    container.innerHTML = `<div class="insight-item"><i class="fa-solid fa-circle-info insight-icon"></i><span>Add expenses to unlock AI insights.</span></div>`;
+    container.innerHTML = `<div class="insight-item"><i class="fa-solid fa-circle-info insight-icon"></i><span>Add a few expenses and patterns in your spending will appear here.</span></div>`;
     return;
   }
 
@@ -1605,7 +1719,7 @@ function renderInsights() {
       insights.push({
         icon: 'fa-solid fa-triangle-exclamation',
         cls: 'insight-danger',
-        text: `⚠️ You've used <strong>${Math.round(pctUsed)}%</strong> of your monthly budget!`
+        text: `You've used <strong>${Math.round(pctUsed)}%</strong> of your monthly budget!`
       });
     }
   }
@@ -1616,11 +1730,11 @@ function renderInsights() {
     const mid = Math.floor(sorted.length / 2);
     const firstHalf = sorted.slice(0, mid).reduce((s, e) => s + e.amount, 0);
     const secondHalf = sorted.slice(mid).reduce((s, e) => s + e.amount, 0);
-    const trend = secondHalf > firstHalf ? 'increasing 📈' : 'decreasing 📉';
+    const trend = secondHalf > firstHalf ? 'going up' : 'going down';
     insights.push({
       icon: 'fa-solid fa-arrow-trend-up',
       cls: secondHalf > firstHalf ? 'insight-warn' : 'insight-success',
-      text: `Your spending trend is <strong>${trend}</strong>.`
+      text: `Your spending is <strong>${trend}</strong> compared with earlier entries.`
     });
   }
 
@@ -1641,12 +1755,11 @@ function renderRecentActivity() {
 
   const recent = currentList.slice(0, 5);
   container.innerHTML = recent.map(exp => {
-    const emoji = CAT_EMOJI[exp.cat] || '📦';
     return `
       <div class="activity-item">
         <span class="activity-dot"></span>
         <div class="activity-info">
-          <div class="activity-desc">${emoji} ${escHtml(exp.desc)}</div>
+          <div class="activity-desc">${escHtml(exp.desc)}</div>
           <div class="activity-meta">${exp.cat} • ${formatDate(exp.date)}</div>
         </div>
         <span class="activity-amount">${formatExpenseAmount(exp)}</span>
@@ -1667,11 +1780,26 @@ const CAT_CLASS_MAP = {
   'Other': 'cat-other',
 };
 
-const CAT_EMOJI = {
-  'Food': '🍔', 'Transport': '🚗', 'Shopping': '🛍️',
-  'Entertainment': '🎮', 'Health': '💊', 'Utilities': '⚡',
-  'Education': '📚', 'Other': '📦'
+const CAT_ICON = {
+  'Food': 'fa-utensils', 'Transport': 'fa-car-side', 'Shopping': 'fa-bag-shopping',
+  'Entertainment': 'fa-film', 'Health': 'fa-heart-pulse', 'Utilities': 'fa-bolt',
+  'Education': 'fa-graduation-cap', 'Other': 'fa-box'
 };
+
+function catIconHtml(cat) {
+  return `<i class="fa-solid ${CAT_ICON[cat] || CAT_ICON.Other}" aria-hidden="true"></i>`;
+}
+
+// Category colour, read from the CSS tokens so pills, charts and cards always match
+function getCatColor(cat) {
+  const cls = (CAT_CLASS_MAP[cat] || 'cat-other');
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--' + cls).trim();
+  return v || '#9AA9A6';
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
 function formatExpenseAmount(exp) {
   const code = exp.currency && currencies[exp.currency] ? exp.currency : selectedCurrency;
@@ -1711,9 +1839,8 @@ function renderTable() {
     list.forEach((exp, idx) => {
       const tr = document.createElement('tr');
       const catClass = CAT_CLASS_MAP[exp.cat] || 'cat-other';
-      const emoji    = CAT_EMOJI[exp.cat] || '📦';
       const isSelected = selectedExpenseIds.has(exp.id);
-      tr.style.animationDelay = `${idx * 30}ms`;
+      tr.dataset.id = exp.id;
       if (isSelected) tr.classList.add('row-selected');
 
       tr.innerHTML = `
@@ -1722,7 +1849,7 @@ function renderTable() {
         </td>
         <td class="row-index">${idx + 1}</td>
         <td class="row-name">${escHtml(exp.desc)}</td>
-        <td><span class="category-pill ${catClass}">${emoji} ${escHtml(exp.cat)}</span></td>
+        <td><span class="category-pill ${catClass}">${catIconHtml(exp.cat)}${escHtml(exp.cat)}</span></td>
         <td class="row-currency">${getCurrencyBadge(exp)}</td>
         <td class="row-amount">${formatExpenseAmount(exp)}</td>
         <td class="row-date">${formatDate(exp.date)}</td>
@@ -1760,6 +1887,20 @@ function renderCharts() {
   renderCategoryChart();
 }
 
+function chartTheme() {
+  return {
+    accent:      cssVar('--primary-light') || '#4188F2',
+    barMuted:    cssVar('--chart-muted') || '#D4D4D4',
+    barHover:    cssVar('--chart-muted-hover') || '#A3A3A3',
+    grid:        cssVar('--border') || 'rgba(196,226,222,0.1)',
+    tick:        cssVar('--text-muted') || '#81989A',
+    legend:      cssVar('--text-secondary') || '#A7BCB8',
+    surface:     cssVar('--bg-surface') || '#112428',
+    tooltipBg:   '#0B1A3E',
+    tooltipText: '#FFFFFF',
+  };
+}
+
 function renderMonthlyChart() {
   const c = getCurrencyObj();
   const currentList = getGlobalFilteredExpenses();
@@ -1782,6 +1923,7 @@ function renderMonthlyChart() {
 
   const ctx = document.getElementById('chart-monthly');
   if (monthlyChart) monthlyChart.destroy();
+  const t = chartTheme();
 
   monthlyChart = new Chart(ctx, {
     type: 'bar',
@@ -1790,14 +1932,11 @@ function renderMonthlyChart() {
       datasets: [{
         label: `Expenses (${c.symbol})`,
         data,
-        backgroundColor: data.map((_, i) =>
-          i === data.length - 1
-            ? 'rgba(0,112,243,0.9)'
-            : 'rgba(0,112,243,0.3)'
-        ),
-        borderRadius: 6,
+        backgroundColor: data.map((_, i) => i === data.length - 1 ? t.accent : t.barMuted),
+        hoverBackgroundColor: data.map((_, i) => i === data.length - 1 ? t.accent : t.barHover),
+        borderRadius: 10,
         borderSkipped: false,
-        hoverBackgroundColor: 'rgba(0,112,243,1)',
+        maxBarThickness: 46,
       }]
     },
     options: {
@@ -1818,25 +1957,32 @@ function renderMonthlyChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: t.tooltipBg,
+          borderColor: t.grid,
           borderWidth: 1,
-          titleColor: '#EDEDED',
-          bodyColor: '#A1A1AA',
+          titleColor: t.tooltipText,
+          bodyColor: t.tooltipText,
+          titleFont: { family: 'Plus Jakarta Sans', weight: '700' },
+          bodyFont: { family: 'Plus Jakarta Sans', weight: '600' },
           padding: 12,
+          cornerRadius: 10,
+          displayColors: false,
           callbacks: { label: ctx => ` ${c.symbol}${ctx.parsed.y.toFixed(2)}` }
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#64748B', font: { family: 'Inter', size: 11 }, padding: 8 }
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: t.tick, font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }, padding: 8 }
         },
         y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
+          grid: { color: t.grid, drawTicks: false },
+          border: { display: false },
           ticks: {
-            color: '#64748B',
-            font: { family: 'Inter', size: 11 },
+            color: t.tick,
+            font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' },
+            maxTicksLimit: 5,
             callback: v => `${c.symbol}${v}`,
             padding: 8
           },
@@ -1858,13 +2004,9 @@ function renderCategoryChart() {
   const labels = Object.keys(catMap);
   const data   = Object.values(catMap);
 
-  const palette = [
-    '#0070F3','#7928CA','#50E3C2','#F5A623',
-    '#FF0080','#3291FF','#8A2BE2','#A1A1AA'
-  ];
-
   const ctx = document.getElementById('chart-category');
   if (categoryChart) categoryChart.destroy();
+  const t = chartTheme();
 
   if (data.length === 0) {
     // Draw placeholder
@@ -1872,7 +2014,7 @@ function renderCategoryChart() {
       type: 'doughnut',
       data: {
         labels: ['No Data'],
-        datasets: [{ data: [1], backgroundColor: ['rgba(255,255,255,0.06)'], borderWidth: 0 }]
+        datasets: [{ data: [1], backgroundColor: [t.grid], borderWidth: 0 }]
       },
       options: {
         responsive: true,
@@ -1896,10 +2038,12 @@ function renderCategoryChart() {
       labels,
       datasets: [{
         data,
-        backgroundColor: labels.map((_, i) => palette[i % palette.length]),
-        borderWidth: 2,
-        borderColor: 'transparent',
-        hoverOffset: 4,
+        backgroundColor: labels.map(l => getCatColor(l)),
+        borderWidth: 3,
+        borderColor: t.surface,
+        hoverBorderColor: t.surface,
+        borderRadius: 6,
+        hoverOffset: 6,
       }]
     },
     options: {
@@ -1916,27 +2060,32 @@ function renderCategoryChart() {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#94A3B8',
-            font: { family: 'Inter', size: 11 },
+            color: t.legend,
+            font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' },
             padding: 14,
-            boxWidth: 12,
-            boxHeight: 12,
+            boxWidth: 8,
+            boxHeight: 8,
+            pointStyle: 'circle',
             usePointStyle: true,
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: t.tooltipBg,
+          borderColor: t.grid,
           borderWidth: 1,
-          titleColor: '#EDEDED',
-          bodyColor: '#A1A1AA',
+          titleColor: t.tooltipText,
+          bodyColor: t.tooltipText,
+          titleFont: { family: 'Plus Jakarta Sans', weight: '700' },
+          bodyFont: { family: 'Plus Jakarta Sans', weight: '600' },
           padding: 12,
+          cornerRadius: 10,
+          displayColors: false,
           callbacks: {
             label: ctx => ` ${c.symbol}${ctx.parsed.toFixed(2)} (${((ctx.parsed / data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)`
           }
         }
       },
-      cutout: '65%'
+      cutout: '70%'
     }
   });
 }
@@ -2051,6 +2200,12 @@ function applyTheme(theme) {
   const iconClass = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
   if (themeBtn) themeBtn.querySelector('i').className = iconClass;
   if (authThemeBtn) authThemeBtn.querySelector('i').className = iconClass;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#070F26' : '#F5F7FC');
+  // Charts read colours from CSS tokens, so redraw them in the new theme
+  if (typeof monthlyChart !== 'undefined' && (monthlyChart || categoryChart)) {
+    try { renderCharts(); } catch (_) { /* charts not ready yet */ }
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────────
@@ -2066,6 +2221,208 @@ function showToast(message, type = 'info') {
     toast.addEventListener('animationend', () => toast.remove(), { once: true });
   }, 3500);
 }
+
+
+// ── Card tilt ──────────────────────────────────────────────
+// The total-spent card leans toward the pointer and its sheen follows,
+// like a real card catching the light. Off for touch and reduced motion.
+function initCardTilt() {
+  const card = document.getElementById('stat-total');
+  if (!card) return;
+  const fine = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!fine || reduce) return;
+  let raf = null;
+  card.addEventListener('pointermove', (e) => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      card.style.setProperty('--rx', ((0.5 - y) * 10).toFixed(2) + 'deg');
+      card.style.setProperty('--ry', ((x - 0.5) * 14).toFixed(2) + 'deg');
+      card.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+      card.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+      card.classList.add('is-tilting');
+    });
+  });
+  card.addEventListener('pointerleave', () => {
+    if (raf) cancelAnimationFrame(raf);
+    card.classList.remove('is-tilting');
+    card.style.setProperty('--rx', '0deg');
+    card.style.setProperty('--ry', '0deg');
+  });
+}
+
+// ── Motion layer ───────────────────────────────────────────
+// Uses Motion (the engine behind Framer Motion) in its vanilla JS build.
+// Every effect answers a change on screen; nothing loops or decorates.
+// If the library fails to load, or the user prefers reduced motion,
+// all of this becomes a no-op and the app works exactly the same.
+const MotionFX = (() => {
+  const M = window.Motion;
+  const reduceQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const enabled = () => !!(M && M.animate) && !(reduceQuery && reduceQuery.matches);
+  const EASE = [0.22, 1, 0.36, 1];
+  const stg = (...a) => (M && M.stagger ? M.stagger(...a) : 0);
+  const SPRING = { type: 'spring', stiffness: 420, damping: 40, mass: 0.9 };
+  const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
+  const loaderGone = () => {
+    const l = document.getElementById('loading-overlay');
+    return !l || l.classList.contains('hidden');
+  };
+
+  if (enabled()) document.documentElement.classList.add('motion-on');
+
+  function run(els, keyframes, opts) {
+    if (!enabled()) return;
+    const list = (Array.isArray(els) ? els : (els && els.length !== undefined ? Array.from(els) : [els])).filter(Boolean);
+    if (!list.length) return;
+    try { M.animate(list, keyframes, opts); } catch (err) { console.warn('Motion:', err); }
+  }
+
+  // One orchestrated entrance for the dashboard: hero first, then the rest settles in.
+  let homeIntroDone = false;
+  function introHome() {
+    const home = document.getElementById('view-home');
+    if (!home || !home.classList.contains('app-view-active') || homeIntroDone) return;
+    homeIntroDone = true;
+    if (!enabled()) return;
+
+    run(home.querySelector('.hero-intro'), { opacity: [0, 1], y: [14, 0] }, { duration: 0.6, ease: EASE });
+    // The card rises in like it's being dealt onto the table
+    run(home.querySelector('.hero-card-stage'), { opacity: [0, 1], y: [40, 0], rotate: [-4, 0], scale: [0.94, 1] },
+        { type: 'spring', stiffness: 140, damping: 18, delay: 0.1 });
+    run(home.querySelector('.trend-card'), { opacity: [0, 1], y: [20, 0] }, { duration: 0.6, ease: EASE, delay: 0.2 });
+
+    const spark = document.getElementById('hero-spark-svg');
+    if (spark && spark.animate) {
+      spark.animate(
+        [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }],
+        { duration: 1200, delay: 450, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'backwards' }
+      );
+    }
+
+    run(home.querySelectorAll('.stat-card'), { opacity: [0, 1], x: [20, 0] },
+        { duration: 0.5, ease: EASE, delay: stg(0.07, { startDelay: 0.3 }) });
+
+    const rest = [
+      ...home.querySelectorAll('.section-head'),
+      ...home.querySelectorAll('.metrics-grid > .card'),
+      ...home.querySelectorAll('.charts-row > .card'),
+      home.querySelector('.list-card'),
+    ];
+    run(rest, { opacity: [0, 1], y: [20, 0] },
+        { duration: 0.55, ease: EASE, delay: stg(0.06, { startDelay: 0.35 }) });
+  }
+
+  // Lighter entrance when switching to another page from the sidebar
+  function introView(view) {
+    if (!view || view.id === 'view-login') return;
+    if (view.id === 'view-home') {
+      if (!homeIntroDone) return introHome();
+      run(view.children, { opacity: [0, 1], y: [12, 0] }, { duration: 0.4, ease: EASE, delay: stg(0.04) });
+      return;
+    }
+    run(view.querySelectorAll('.page-card'), { opacity: [0, 1], y: [16, 0] }, { duration: 0.45, ease: EASE });
+    window.scrollTo({ top: 0 });
+  }
+
+  function introLogin() {
+    const login = document.getElementById('view-login');
+    if (!login || !login.classList.contains('app-view-active')) return;
+    run(login.querySelectorAll('.auth-hero__headline, .auth-hero__lede'), { opacity: [0, 1], y: [24, 0] },
+        { duration: 0.7, ease: EASE, delay: stg(0.08, { startDelay: 0.1 }) });
+    run(login.querySelectorAll('.auth-hero__features li'), { opacity: [0, 1], x: [-12, 0] },
+        { duration: 0.45, ease: EASE, delay: stg(0.06, { startDelay: 0.35 }) });
+    run(login.querySelector('.auth-card'), { opacity: [0, 1], y: [16, 0] }, { duration: 0.55, ease: EASE, delay: 0.15 });
+  }
+
+  // Modals spring up from where the eye already is (bottom sheet on phones)
+  function onModalOpen(overlay) {
+    const card = overlay.querySelector('.modal-card');
+    if (isPhone()) run(card, { y: ['100%', '0%'], opacity: [1, 1] }, { type: 'spring', stiffness: 320, damping: 34 });
+    else run(card, { opacity: [0, 1], y: [24, 0], scale: [0.96, 1] }, SPRING);
+  }
+
+  function onSidebarOpen(sidebar) {
+    run(sidebar.querySelectorAll('.sidebar-nav > li'), { opacity: [0, 1], x: [24, 0] },
+        { duration: 0.35, ease: EASE, delay: stg(0.04, { startDelay: 0.08 }) });
+  }
+
+  // Only rows that are new since the last render animate in — typing in search stays calm.
+  const seenRows = new Set();
+  let firstTableRender = true;
+  function onTableRender(tbody) {
+    const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+    const fresh = rows.filter(r => !seenRows.has(r.dataset.id));
+    rows.forEach(r => seenRows.add(r.dataset.id));
+    if (firstTableRender) { firstTableRender = false; return; } // the page entrance covers the first paint
+    if (!fresh.length) return;
+    run(fresh.slice(0, 12), { opacity: [0, 1], y: [-8, 0] },
+        { duration: 0.4, ease: EASE, delay: stg(0.04) });
+    fresh.slice(0, 1).forEach(r => {
+      if (fresh.length === 1 && r.animate) {
+        r.animate([{ backgroundColor: cssVar('--accent-soft') }, { backgroundColor: 'rgba(0,0,0,0)' }],
+                  { duration: 1400, easing: 'ease-out' });
+      }
+    });
+  }
+
+  function onTopCategory(body) {
+    run(body.querySelector('.top-cat-bar-fill'), { scaleX: [0, 1] }, { duration: 0.8, ease: EASE, delay: 0.1 });
+    run(body.querySelector('.top-cat-icon'), { scale: [0.6, 1], opacity: [0, 1] }, SPRING);
+  }
+
+  function onAuthFormShown(form) {
+    run(form.children, { opacity: [0, 1], y: [8, 0] }, { duration: 0.3, ease: EASE, delay: stg(0.04) });
+  }
+
+  function onToast(toast) {
+    toast.style.animation = 'none';
+    run(toast, { opacity: [0, 1], y: [20, 0], scale: [0.95, 1] }, { type: 'spring', stiffness: 420, damping: 30 });
+  }
+
+  function watch() {
+    const classObserver = new MutationObserver(muts => {
+      muts.forEach(m => {
+        const el = m.target;
+        const was = (m.oldValue || '').split(/\s+/);
+        if (el.classList.contains('modal-overlay') && el.classList.contains('open') && !was.includes('open')) onModalOpen(el);
+        if (el.id === 'app-sidebar' && el.classList.contains('open') && !was.includes('open')) onSidebarOpen(el);
+        if (loaderGone() && el.classList.contains('app-view') && el.classList.contains('app-view-active') && !was.includes('app-view-active')) {
+          if (el.id === 'view-login') introLogin(); else introView(el);
+        }
+      });
+    });
+    document.querySelectorAll('.modal-overlay, #app-sidebar, .app-view').forEach(el =>
+      classObserver.observe(el, { attributes: true, attributeFilter: ['class'], attributeOldValue: true }));
+
+    const hiddenObserver = new MutationObserver(muts => {
+      muts.forEach(m => { if (!m.target.hidden && m.oldValue !== null) onAuthFormShown(m.target); });
+    });
+    document.querySelectorAll('.auth-form').forEach(f =>
+      hiddenObserver.observe(f, { attributes: true, attributeFilter: ['hidden'], attributeOldValue: true }));
+
+    const tbody = document.getElementById('expense-tbody');
+    if (tbody) new MutationObserver(() => onTableRender(tbody)).observe(tbody, { childList: true });
+
+    const topCat = document.getElementById('top-category-body');
+    if (topCat) new MutationObserver(() => onTopCategory(topCat)).observe(topCat, { childList: true });
+
+    const toasts = document.getElementById('toast-container');
+    if (toasts) new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(n => {
+      if (n.nodeType === 1 && n.classList.contains('toast')) onToast(n);
+    }))).observe(toasts, { childList: true });
+  }
+
+  return { watch, introHome, introLogin };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  MotionFX.watch();
+  // Let the loader fade first, then play the login entrance if that's where we land
+  setTimeout(() => MotionFX.introLogin(), 380);
+});
 
 // ── Start ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
